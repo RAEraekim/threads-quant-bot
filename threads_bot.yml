@@ -1,27 +1,24 @@
 name: Threads Quant Signal Auto Bot
 
 on:
-  # 1. 스케줄 자동 실행 (main 브랜치에 푸시되는 즉시 상시 활성화됨)
+  # 1. 파일 푸시 즉시 최초 1회 강제 실행
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - 'threads_bot.js'
+      - 'package.json'
+
+  # 2. 버튼 누르면 조건 없이 즉시 실행
+  workflow_dispatch:
+
+  # 3. 이후 정해진 시간에 자동 실행
   schedule:
-    # [주의] 아래 UTC는 서머타임 적용 기준(한국시간 본장 22:30~05:00) 시간대다.
     # 프리마켓 점검: 월~금 22:00 KST (UTC 13:00)
     - cron: '0 13 * * 1-5'
-    # 마감 브리핑: 화~토 05:30 KST (UTC 20:30 월~금)
-    # *서머타임 해제 시 마감은 06:30 KST(UTC 21:30)로 수정 필요
+    # 마감 브리핑: 화~토 05:30/06:30 KST (UTC 20:30 월~금)
     - cron: '30 20 * * 1-5'
-
-  # 2. 버튼 클릭 시 즉시 실행
-  workflow_dispatch:
-    inputs:
-      session:
-        description: '실행 모드 (즉시 발행은 auto 권장)'
-        required: true
-        default: 'auto'
-        type: choice
-        options:
-          - 'auto'
-          - 'pre'
-          - 'post'
 
 jobs:
   publish-threads:
@@ -38,17 +35,10 @@ jobs:
       - name: 의존성 패키지 설치
         run: npm ci || npm install
 
-      - name: 퀀트 봇 실행 및 Threads 자동 포스팅
+      - name: 퀀트 봇 즉시 실행 및 포스팅
         env:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-        run: |
-          # 트리거 방식에 따라 인자 전달
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "수동 트리거 실행: 세션 [${{ github.event.inputs.session }}]"
-            node threads_bot.js "${{ github.event.inputs.session }}"
-          else
-            echo "스케줄 트리거 자동 실행"
-            node threads_bot.js "auto"
-          fi
+        run: node threads_bot.js
+
 
