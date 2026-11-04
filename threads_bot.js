@@ -80,7 +80,7 @@ function calculateStochasticSlow(highs, lows, closes, n = 20, m = 3, t = 3) {
 }
 
 // ============================================================================
-// 3. 5대 지표 복합 과열도(Heat Index) 및 시스템 상태 평가
+// 3. 5대 지표 복합 과열도(Heat Index) 및 시스템 상태 평가 (옵션 2 템플릿용)
 // ============================================================================
 function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20) {
   const sDisp = clamp(((disp - (-10.0)) / 30.0) * 100.0, 0.0, 100.0);
@@ -97,27 +97,37 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20) {
   const isHighVol = vix >= 20.0;
 
   let badge = "🟢골디락스";
-  let actionCommand = "• QLD 75% + GPIX 25% 기본 정기 적립 프로토콜 실행.";
+  let posText = "• QLD: 75% (안정 적립 프로토콜 실행)\n• GPIX: 25% (현금흐름 방어 유지)";
+  let bottomText = "대세 상승 추세 양호. 기본 루틴 적립을 진행합니다.";
+  let statusComment = "안정적 상승 추세";
 
   if (disp > 0) {
     if (disp >= 12.0 || heatIndex >= 75) {
       badge = "💰고점과열(경보)";
-      actionCommand = "• 고점 과열 감지. QLD 30% 축소 / GPIX 70% 방어 비중 확대.";
+      posText = "• QLD: 30% (레버리지 비중 축소)\n• GPIX: 70% (방어자산 대폭 확대)";
+      bottomText = "고점 과열 경보 발령. 방어자산 비중을 확대합니다.";
+      statusComment = "고점 과열 경계";
     } else if (isNearSma200 || isDowntrendShort || isHighVol) {
       badge = "⚠️지지선경계";
-      actionCommand = "• 200일선 위태. QLD 매수 동결 / GPIX 100% 실탄 비축.";
+      posText = "• QLD: 0% (매수 전면 동결! 추가 급락 위험)\n• GPIX: 100% (원금 방어 & 반등 실탄 100% 비축)";
+      bottomText = "바닥 돌파 신호 확인 전까지 레버리지 매수를 금지합니다.";
+      statusComment = "붕괴 직전 턱걸이";
     }
   } else {
     if (vix < 22.0 && aboveSma20) {
       badge = "🎯골든스나이퍼";
-      actionCommand = "• 바닥 반등 확인. 비축 실탄으로 TQQQ 80% 집중 타격 프로토콜 실행.";
+      posText = "• TQQQ: 80% (바닥 반등 확인! 집중 타격)\n• GPIX: 20% (잔여 방어 유지)";
+      bottomText = "바닥 탈출 반등 확인. 비축 실탄으로 레버리지 진입을 개시합니다.";
+      statusComment = "바닥 탈출 반등 국면";
     } else {
       badge = "🚨실탄비축(하락)";
-      actionCommand = "• 대세 하락 국면. 레버리지 매수 전면 동결 / GPIX 100% 방어.";
+      posText = "• QLD: 0% (매수 전면 동결! 하락장 진행 중)\n• GPIX: 100% (MDD 방어 및 실탄 100% 비축)";
+      bottomText = "대세 하락 진행 중. 반등 신호까지 레버리지 매수를 전면 금지합니다.";
+      statusComment = "대세 하락 진행 중";
     }
   }
 
-  return { heatIndex, badge, actionCommand };
+  return { heatIndex, badge, posText, bottomText, statusComment };
 }
 
 // ============================================================================
@@ -170,24 +180,35 @@ async function publishToThreads(text) {
   const creationId = res1.body.id;
   console.log(`✅ 컨테이너 생성 완료 (ID: ${creationId})`);
 
-  console.log('🚀 2단계: Threads 실제 발행 중...');
-  const publishData = new URLSearchParams({
-    creation_id: creationId,
-    access_token: THREADS_ACCESS_TOKEN
-  }).toString();
+  // Meta 서버 분산 DB 동기화 대기 (최소 5초 대기 필수)
+  console.log('⏳ Meta 서버 동기화 대기 중 (5초)...');
+  await new Promise(r => setTimeout(r, 5000));
 
-  const res2 = await sendRequest(`/v1.0/${THREADS_USER_ID}/threads_publish`, publishData);
-  if (res2.status === 200 && res2.body.id) {
-    console.log(`🎉 포스팅 성공! (게시물 ID: ${res2.body.id})`);
-    return true;
-  } else {
-    console.error('❌ 포스팅 발행 실패:', res2.body);
-    return false;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    console.log(`🚀 2단계: Threads 실제 발행 중... (시도 ${attempt}/3)`);
+    const publishData = new URLSearchParams({
+      creation_id: creationId,
+      access_token: THREADS_ACCESS_TOKEN
+    }).toString();
+
+    const res2 = await sendRequest(`/v1.0/${THREADS_USER_ID}/threads_publish`, publishData);
+    if (res2.status === 200 && res2.body.id) {
+      console.log(`🎉 포스팅 성공! (게시물 ID: ${res2.body.id})`);
+      return res2.body.id;
+    }
+
+    if (attempt < 3) {
+      console.log('⏳ Meta 서버 동기화 지연 감지, 3초 후 재시도...');
+      await new Promise(r => setTimeout(r, 3000));
+    } else {
+      console.error('❌ 포스팅 발행 실패:', res2.body);
+      return false;
+    }
   }
 }
 
 // ============================================================================
-// 5. 포스팅 텍스트 생성기 (개장 전 / 마감 후 자동 분기 지원)
+// 5. 포스팅 텍스트 생성기 (옵션 2: 스마트 봇 & 냉정한 데이터 팩트형)
 // ============================================================================
 async function generatePostContent(isPreMarket) {
   const qqqJson = await fetchYahooJSON('https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=1y');
@@ -218,31 +239,27 @@ async function generatePostContent(isPreMarket) {
 
   const regime = evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20);
 
-  const nowKST = new Date(new Date().getTime() + 9 * 3600 * 1000);
-  const dateStr = `${nowKST.getFullYear()}.${String(nowKST.getMonth() + 1).padStart(2, '0')}.${String(nowKST.getDate()).padStart(2, '0')}`;
   const dispSign = disp >= 0 ? '+' : '';
+  const sma20Str = aboveSma20 ? '상회 🟢' : '하회 🔴';
+  const sessionHeader = isPreMarket ? "오늘 밤 권장 포지션" : "익일 권장 포지션";
 
-  const sessionTitle = isPreMarket ? "개장 전 프리마켓 점검" : "정규장 마감 퀀트 분석";
-  const commandHeader = isPreMarket ? "오늘 밤 정규장 주문 명령" : "금일 시스템 명령";
+  const postText = `[SYSTEM REPORT: QLD 절대 생존 퀀트]
+"하락장에선 레버리지를 멈추고 실탄만 모은다."
 
-  const postText = `[SYSTEM LOG: QLD 퀀트 방어 봇 v4.0]
-■ 세션: ${sessionTitle}
-■ 판정: ${regime.badge} (과열도: ${regime.heatIndex}점)
-■ 기준: ${dateStr} 실시간 지표
+10년 백테스트로 검증된 전략입니다.
+상승장엔 QLD 2배 복리를 극대화하고, 하락장엔 매수를 멈춘 채 S&P500 월배당(GPIX 연 8.3%)으로 저가 매수용 실탄을 축적합니다.
 
-[5대 퀀트 복합 지표]
-1. 200일선 이격: ${dispSign}${disp.toFixed(1)}% (턱걸이)
-2. 일봉 RSI: ${rsi.toFixed(1)} | 3. 볼린저 %B: ${bb.toFixed(1)}%
-4. 스토캐스틱 %D: ${stoch.toFixed(1)} | 5. VIX: ${vix.toFixed(1)}
+■ 현재 시장 냉정 진단 (${regime.badge})
+• QQQ 200일선 이격: ${dispSign}${disp.toFixed(1)}% (${regime.statusComment})
+• 단기 20일선 ${sma20Str} | VIX ${vix.toFixed(1)} 공포 유입
+• 5대 지표 복합 과열도: ${regime.heatIndex}점 (바닥 미확인)
 
-[시스템 자산 배분 원칙]
-• QLD: 나스닥 우상향 2배 복리 극대화. 단, 하락장 변동성 잠식 방어를 위해 200일선 지지 확인 안전 구간에서만 진입.
-• GPIX: S&P500 월배당(연 8.3%)으로 하락장 완충 및 폭락 시 QLD 저가 매수용 실탄(현금흐름)을 자동 공급함.
+■ ${sessionHeader}
+${regime.posText}
 
-[${commandHeader}]
-${regime.actionCommand}
+${regime.bottomText}
 
-#미국주식 #나스닥 #QQQ #QLD #GPIX #investing #퀀트투자`;
+#미국주식 #나스닥 #QQQ #QLD #GPIX #investing`;
 
   return postText;
 }
