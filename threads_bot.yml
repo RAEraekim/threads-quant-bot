@@ -1,16 +1,20 @@
-name: Threads Quant Signal Auto Bot (Twice Daily)
+name: Threads Quant Signal Auto Bot
 
 on:
+  # 1. 스케줄 자동 실행 (main 브랜치에 푸시되는 즉시 상시 활성화됨)
   schedule:
-    # 1. 미장 개장 전 프리마켓 점검: 월~금 한국시간 22:00 (UTC 13:00)
+    # [주의] 아래 UTC는 서머타임 적용 기준(한국시간 본장 22:30~05:00) 시간대다.
+    # 프리마켓 점검: 월~금 22:00 KST (UTC 13:00)
     - cron: '0 13 * * 1-5'
-    # 2. 미장 마감 후 종가 브리핑: 화~토 한국시간 06:30 (UTC 21:30 월~금)
-    - cron: '30 21 * * 1-5'
+    # 마감 브리핑: 화~토 05:30 KST (UTC 20:30 월~금)
+    # *서머타임 해제 시 마감은 06:30 KST(UTC 21:30)로 수정 필요
+    - cron: '30 20 * * 1-5'
 
+  # 2. 버튼 클릭 시 즉시 실행
   workflow_dispatch:
     inputs:
       session:
-        description: '실행할 세션 선택'
+        description: '실행 모드 (즉시 발행은 auto 권장)'
         required: true
         default: 'auto'
         type: choice
@@ -24,26 +28,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 저장소 체크아웃
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Node.js 20 설치
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: 의존성 패키지 설치
+        run: npm ci || npm install
 
       - name: 퀀트 봇 실행 및 Threads 자동 포스팅
         env:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
         run: |
+          # 트리거 방식에 따라 인자 전달
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.session }}" = "pre" ]; then
-              node threads_bot.js pre
-            elif [ "${{ github.event.inputs.session }}" = "post" ]; then
-              node threads_bot.js post
-            else
-              node threads_bot.js
-            fi
+            echo "수동 트리거 실행: 세션 [${{ github.event.inputs.session }}]"
+            node threads_bot.js "${{ github.event.inputs.session }}"
           else
-            node threads_bot.js
+            echo "스케줄 트리거 자동 실행"
+            node threads_bot.js "auto"
           fi
+
