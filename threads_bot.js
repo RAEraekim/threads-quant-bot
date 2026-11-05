@@ -2,10 +2,15 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const https = require('https');
 
 // ============================================================================
-// 1. Threads API 인증 정보
+// 1. Threads API 인증 정보 (GitHub Secrets 없어도 자체 Fallback으로 100% 작동)
 // ============================================================================
-const THREADS_USER_ID = process.env.THREADS_USER_ID || "29066378143019292";
-const THREADS_ACCESS_TOKEN = process.env.THREADS_ACCESS_TOKEN || "THAAXRloFIEjRBYmJQdW5rZAVZA3MlhDcjlrY2E3dktSYlJSZAERJdXdqYi1vc3Q0TDNiVDFGZAkZAFZAUlUdFBINXNNZAzhrZAHRBYXA4ZA2pJbDloVnV4NmR6c01BYjU5X0JEVDZASSnNPeXM5dlVrZAUpEa3JpelRfNFpYVXlJenVnemdGZAVlVZAwZDZD";
+const THREADS_USER_ID = (process.env.THREADS_USER_ID && process.env.THREADS_USER_ID.trim() !== "")
+  ? process.env.THREADS_USER_ID.trim()
+  : "29066378143019292";
+
+const THREADS_ACCESS_TOKEN = (process.env.THREADS_ACCESS_TOKEN && process.env.THREADS_ACCESS_TOKEN.trim() !== "")
+  ? process.env.THREADS_ACCESS_TOKEN.trim()
+  : "THAAXRloFIEjRBYmJQdW5rZAVZA3MlhDcjlrY2E3dktSYlJSZAERJdXdqYi1vc3Q0TDNiVDFGZAkZAFZAUlUdFBINXNNZAzhrZAHRBYXA4ZA2pJbDloVnV4NmR6c01BYjU5X0JEVDZASSnNPeXM5dlVrZAUpEa3JpelRfNFpYVXlJenVnemdGZAVlVZAwZDZD";
 
 // ============================================================================
 // 2. 야후 파이낸스 실시간 데이터 수집기
@@ -238,7 +243,7 @@ async function publishToThreads(text) {
 }
 
 // ============================================================================
-// 6. 포스팅 텍스트 생성기 (안 A: 5대 지표 개별 나열 + 종합 복합 과열도)
+// 6. 포스팅 텍스트 생성기 (5대 지표 개별 나열 + 종합 복합 과열도)
 // ============================================================================
 async function generatePostContent(isPreMarket) {
   const qqqJson = await fetchYahooJSON('https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=1y');
@@ -293,7 +298,6 @@ ${regime.bottomText}
 
 #미국주식 #나스닥 #QQQ #QLD #GPIX #investing`;
 
-  // 500자 안전 장치: 만약 수치 길이나 텍스트로 인해 500자를 초과할 경우 자동 미세 조정
   if (postText.length > 500) {
     console.warn(`⚠️ 경고: 글자 수(${postText.length}자) 초과 방지를 위한 안전 조정 실행`);
     postText = postText.replace('#미국주식 #나스닥 #QQQ #QLD #GPIX #investing', '#나스닥 #QQQ #QLD #GPIX #investing');
