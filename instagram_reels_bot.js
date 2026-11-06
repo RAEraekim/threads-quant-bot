@@ -13,7 +13,7 @@ const IG_USER_ID = (process.env.INSTAGRAM_ACCOUNT_ID && process.env.INSTAGRAM_AC
 
 const PAGE_ACCESS_TOKEN = (process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_ACCESS_TOKEN.trim() !== "")
   ? process.env.INSTAGRAM_ACCESS_TOKEN.trim()
-  : (process.env.PAGE_ACCESS_TOKEN || "");
+  : "EAAfdZBNdsyFcBS4zXVkV855SilZBJsFqLZBayNhU9HrKaGFYS1jBppWbL6yDgR1elsKQGLDZCdGxbzmZA2nVExdY8Lh2iuNSYkpZAHwuNtwAyePyQ4fHFZC92qtHDuoFuRKQnvEBZCTZBQXcK6MFZBCreP6leD9URg2QO2vHcwfXMtxLivIyOevct8o8DFnzG2AV7fRABxiTy7icT7Gghqh7HL5YOT74o349rIlvTrchW9eiXZCBDzrsECnRZC1PcpkgnKx8ZCOqznLWStMvqXSX8vMEp";
 
 function getFfmpegPath() {
   if (process.platform === 'win32') {
