@@ -1,20 +1,14 @@
-name: Threads Quant Signal Auto Bot
+name: Quant Multi-Channel Auto Bot (Threads, X & Instagram Reels)
 
 on:
-  # 1. 깃허브에 코드를 올리거나 커밋하면 즉시 현재 시황 바탕으로 1회 자동 발행!
-  push:
-    branches:
-      - main
-      - master
-
-  # 2. 정기 자동 스케줄 (한국시간 기준)
+  # 1. 정기 자동 스케줄 (한국시간 기준 평일 2회 정기 발행)
   schedule:
     # ☀️ [미장 정규장 마감 브리핑 & 오전 숏폼]: 화~토 한국시간 오전 07:00 (UTC 22:00 전날)
     - cron: '0 22 * * 1-5'
     # 🌙 [미장 개장 전 프리마켓 & 저녁 숏폼]: 월~금 한국시간 오후 06:00 (UTC 09:00)
     - cron: '0 9 * * 1-5'
 
-  # 3. 깃허브 Actions 탭에서 'Run workflow' 버튼으로 언제든 즉시 수동 실행 가능
+  # 2. 깃허브 Actions 탭에서 'Run workflow' 버튼으로 필요 시 즉시 수동 실행 가능
   workflow_dispatch:
     inputs:
       session:
@@ -28,7 +22,7 @@ on:
           - 'post'
 
 jobs:
-  publish-threads:
+  publish-multi-channel:
     runs-on: ubuntu-latest
     steps:
       - name: 저장소 체크아웃
@@ -39,20 +33,26 @@ jobs:
         with:
           node-version: 20
 
-      - name: X(트위터) 라이브러리 설치
-        run: npm install twitter-api-v2 --no-save
+      # 🎬 릴스 비디오 렌더링을 위한 FFmpeg 및 한글 폰트(Noto CJK, 나눔) 설치
+      - name: FFmpeg 및 한글 폰트 패키지 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk fonts-nanum
 
-      - name: 퀀트 봇 실행 및 Threads & X 자동 포스팅
+      # 📦 package.json에 정의된 모든 패키지(sharp, msedge-tts, twitter-api-v2 등) 설치
+      - name: Node.js 의존성 패키지 설치
+        run: npm install
+
+      - name: 퀀트 봇 실행 및 멀티채널(Threads, X, Reels) 동시 자동 포스팅
         env:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
-          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
-          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.session }}" = "pre" ]; then
