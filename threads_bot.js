@@ -337,13 +337,22 @@ async function main() {
 
     await publishToThreads(postContent);
 
-    // X(트위터) 동시 발행
+    // 2. X(트위터) 동시 발행
     try {
       const { publishToX } = require('./x_bot.js');
       console.log('\n🚀 X(트위터) 동시 포스팅 진행...');
       await publishToX(postContent);
     } catch (xErr) {
       console.warn('⚠️ X 포스팅 건너뜀 또는 오류:', xErr.message);
+    }
+
+    // 3. 인스타그램 릴스(Reels) 동시 제작 및 발행
+    try {
+      const { createAndPublishDailyReel } = require('./instagram_reels_bot.js');
+      console.log('\n🎬 인스타그램 릴스(Reels) 동시 제작 및 발행 진행...');
+      await createAndPublishDailyReel(regime, descs, isPreMarket, postContent);
+    } catch (reelsErr) {
+      console.warn('⚠️ 인스타그램 릴스 건너뜀 또는 오류:', reelsErr.message);
     }
 
     // 구글 플로우(Google Flow) 숏폼 에셋 패키지 자동 생성 (선택적)
