@@ -2,7 +2,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const https = require('https');
 
 // ============================================================================
-// 1. Threads API 인증 정보 (GitHub Secrets 없어도 자체 Fallback으로 100% 작동)
+// 1. Threads API 인증 정보
 // ============================================================================
 const THREADS_USER_ID = (process.env.THREADS_USER_ID && process.env.THREADS_USER_ID.trim() !== "")
   ? process.env.THREADS_USER_ID.trim()
@@ -243,7 +243,7 @@ async function publishToThreads(text) {
 }
 
 // ============================================================================
-// 6. 포스팅 텍스트 생성기 (5대 지표 개별 나열 + 종합 복합 과열도)
+// 6. 포스팅 텍스트 생성기 (안 A: 5대 지표 개별 나열 + 종합 복합 과열도)
 // ============================================================================
 async function generatePostContent(isPreMarket) {
   const qqqJson = await fetchYahooJSON('https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=1y');
@@ -298,6 +298,7 @@ ${regime.bottomText}
 
 #미국주식 #나스닥 #QQQ #QLD #GPIX #investing`;
 
+  // 500자 안전 장치: 만약 수치 길이나 텍스트로 인해 500자를 초과할 경우 자동 미세 조정
   if (postText.length > 500) {
     console.warn(`⚠️ 경고: 글자 수(${postText.length}자) 초과 방지를 위한 안전 조정 실행`);
     postText = postText.replace('#미국주식 #나스닥 #QQQ #QLD #GPIX #investing', '#나스닥 #QQQ #QLD #GPIX #investing');
@@ -335,6 +336,24 @@ async function main() {
     console.log('---------------------------\n');
 
     await publishToThreads(postContent);
+
+    // X(트위터) 동시 발행
+    try {
+      const { publishToX } = require('./x_bot.js');
+      console.log('\n🚀 X(트위터) 동시 포스팅 진행...');
+      await publishToX(postContent);
+    } catch (xErr) {
+      console.warn('⚠️ X 포스팅 건너뜀 또는 오류:', xErr.message);
+    }
+
+    // 구글 플로우(Google Flow) 숏폼 에셋 패키지 자동 생성 (선택적)
+    try {
+      const { generateFlowPackage } = require('./generate_flow_pack.js');
+      const topicTitle = isPreMarket ? "미장 개장 전 프리마켓 핵심 지표 점검" : "미장 정규장 마감 퀀트 분석 리포트";
+      await generateFlowPackage(topicTitle, postContent);
+    } catch (flowErr) {
+      // 로컬/CI 환경에 sharp/msedge-tts가 없는 경우 안전하게 통과
+    }
   } catch (err) {
     console.error('오류 발생:', err.message);
   }
