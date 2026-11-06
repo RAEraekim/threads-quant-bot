@@ -56,13 +56,18 @@ function formatForX(postText) {
 }
 
 async function getXClient() {
-  // 1순위: OAuth 1.0a (만료되지 않는 영구 키 방식 - GitHub Actions 추천)
-  if (process.env.X_API_KEY && process.env.X_ACCESS_TOKEN) {
+  // 1순위: OAuth 1.0a (만료되지 않는 영구 키 방식 - 로컬 및 GitHub Actions 최적)
+  const appKey = process.env.X_API_KEY || '6fTtht3ZpM0hE59E6DxsPdwe5';
+  const appSecret = process.env.X_API_SECRET || 'STKu7BoFD7ns6Nb3KPvEN8aqkRKxhG38Lp9zzbVSbl8EvTEqiB';
+  const accessToken = process.env.X_ACCESS_TOKEN || '1524219327683371010-IHrKykf7VbLh07nBtatcPBnHwcKp49';
+  const accessSecret = process.env.X_ACCESS_SECRET || 'U1itA3sSA8y9HoZqqCsdcS3VAPFRGnk82uC4nCi8gjo7k';
+
+  if (appKey && accessToken && appSecret && accessSecret) {
     return new TwitterApi({
-      appKey: process.env.X_API_KEY,
-      appSecret: process.env.X_API_SECRET,
-      accessToken: process.env.X_ACCESS_TOKEN,
-      accessSecret: process.env.X_ACCESS_SECRET,
+      appKey,
+      appSecret,
+      accessToken,
+      accessSecret,
     });
   }
 
