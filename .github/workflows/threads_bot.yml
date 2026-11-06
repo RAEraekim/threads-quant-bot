@@ -1,18 +1,18 @@
 name: Threads Quant Signal Auto Bot
 
 on:
-  # 1. 깃허브에 코드를 올리거나 커밋(Push)하면 즉시 현재 시황 바탕으로 1회 자동 발행!
+  # 1. 깃허브에 코드를 올리거나 커밋하면 즉시 현재 시황 바탕으로 1회 자동 발행!
   push:
     branches:
       - main
       - master
 
-  # 2. 정기 자동 스케줄 (한국시간 기준 월~토 자동 실행)
+  # 2. 정기 자동 스케줄 (한국시간 기준)
   schedule:
-    # 🌙 [미장 개장 전 프리마켓 점검]: 월~금 한국시간 22:00 (UTC 13:00)
-    - cron: '0 13 * * 1-5'
-    # ☀️ [미장 정규장 마감 브리핑]: 화~토 한국시간 06:30 (UTC 21:30 월~금)
-    - cron: '30 21 * * 1-5'
+    # ☀️ [미장 정규장 마감 브리핑 & 오전 숏폼]: 화~토 한국시간 오전 07:00 (UTC 22:00 전날)
+    - cron: '0 22 * * 1-5'
+    # 🌙 [미장 개장 전 프리마켓 & 저녁 숏폼]: 월~금 한국시간 오후 06:00 (UTC 09:00)
+    - cron: '0 9 * * 1-5'
 
   # 3. 깃허브 Actions 탭에서 'Run workflow' 버튼으로 언제든 즉시 수동 실행 가능
   workflow_dispatch:
@@ -39,10 +39,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: 퀀트 봇 실행 및 Threads 자동 포스팅
+      - name: X(트위터) 라이브러리 설치
+        run: npm install twitter-api-v2 --no-save
+
+      - name: 퀀트 봇 실행 및 Threads & X 자동 포스팅
         env:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.session }}" = "pre" ]; then
