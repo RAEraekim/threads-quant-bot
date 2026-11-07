@@ -243,9 +243,9 @@ async function publishToThreads(text) {
 }
 
 // ============================================================================
-// 6. 포스팅 텍스트 생성기 (안 A: 5대 지표 개별 나열 + 종합 복합 과열도)
+// 6. 실시간 시장 데이터 및 5대 지표 수집기
 // ============================================================================
-async function generatePostContent(isPreMarket) {
+async function fetchRealtimeMarketData() {
   const qqqJson = await fetchYahooJSON('https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=1y');
   const quote = qqqJson.chart.result[0].indicators.quote[0];
   let highs = [], lows = [], closes = [];
@@ -275,10 +275,34 @@ async function generatePostContent(isPreMarket) {
   const regime = evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20);
   const descs = getIndicatorDescs(disp, rsi, bb, stoch, vix, regime.heatIndex);
 
+  return {
+    qqqPrice,
+    sma200,
+    sma20,
+    disp,
+    aboveSma20,
+    rsi,
+    bb,
+    stoch,
+    vix,
+    regime,
+    descs
+  };
+}
+
+// ============================================================================
+// 7. 포스팅 텍스트 생성기
+// ============================================================================
+async function generatePostContent(isPreMarket, preloadedData = null) {
+  const quantData = preloadedData || await fetchRealtimeMarketData();
+  const { disp, rsi, bb, stoch, vix, regime, descs } = quantData;
+
   const dispSign = disp >= 0 ? '+' : '';
   const sessionHeader = isPreMarket ? "오늘 밤 권장 포지션" : "익일 권장 포지션";
+  const systemHeader = isPreMarket ? "🌙 [오후 19:00 프리마켓 매수 알림]" : "☀️ [오전 07:00 정규장 마감 브리핑]";
 
   let postText = `[SYSTEM REPORT: QLD 절대 생존 퀀트]
+${systemHeader}
 ${regime.headline}
 
 ${regime.subIntro}
@@ -298,17 +322,17 @@ ${regime.bottomText}
 
 #미국주식 #나스닥 #QQQ #QLD #GPIX #investing`;
 
-  // 500자 안전 장치: 만약 수치 길이나 텍스트로 인해 500자를 초과할 경우 자동 미세 조정
+  // 500자 안전 장치
   if (postText.length > 500) {
     console.warn(`⚠️ 경고: 글자 수(${postText.length}자) 초과 방지를 위한 안전 조정 실행`);
     postText = postText.replace('#미국주식 #나스닥 #QQQ #QLD #GPIX #investing', '#나스닥 #QQQ #QLD #GPIX #investing');
   }
 
-  return postText;
+  return { postText, quantData };
 }
 
 // ============================================================================
-// 7. 메인 실행 함수
+// 8. 메인 실행 함수 (통합 다채널 동시 발행 파이프라인)
 // ============================================================================
 async function main() {
   const args = process.argv.slice(2);
@@ -319,50 +343,65 @@ async function main() {
   } else if (args.includes('post')) {
     isPreMarket = false;
   } else {
-    // KST 시간대 자동 감지: 17시~23시는 개장 전 프리마켓 점검, 그 외는 정규장 마감 브리핑
+    // KST 시간대 자동 감지:
+    // 오후 14시~23시는 미장 개장 전 프리마켓 점검 (오늘 밤 매수 알림)
+    // 그 외(오전 05시~13시)는 미장 정규장 마감 브리핑 (확정 종가 및 익일 포지션)
     const nowKST = new Date(new Date().getTime() + 9 * 3600 * 1000);
     const hour = nowKST.getHours();
-    isPreMarket = (hour >= 17 && hour <= 23);
+    isPreMarket = (hour >= 14 && hour <= 23);
   }
 
-  const sessionName = isPreMarket ? "🌙 [미장 개장 전 프리마켓 점검]" : "☀️ [미장 정규장 마감 브리핑]";
-  console.log(`=== [Threads 퀀트 봇 실행: ${sessionName}] ===`);
+  const sessionName = isPreMarket ? "🌙 [미장 개장 전 프리마켓 점검 & 매수 알림]" : "☀️ [미장 정규장 마감 브리핑 & 포지션]";
+  console.log(`=== [퀀트 봇 다채널 자동 발행 시작: ${sessionName}] ===`);
 
   try {
-    const postContent = await generatePostContent(isPreMarket);
+    const { postText, quantData } = await generatePostContent(isPreMarket);
     console.log('\n--- [생성된 포스팅 내용] ---');
-    console.log(postContent);
-    console.log(`글자 수: ${postContent.length}자 (제한 500자)`);
+    console.log(postText);
+    console.log(`글자 수: ${postText.length}자 (Threads 제한 500자)`);
     console.log('---------------------------\n');
 
-    await publishToThreads(postContent);
+    // 1. Threads 발행
+    console.log('📱 1. Threads 포스팅 진행...');
+    await publishToThreads(postText);
 
-    // 2. X(트위터) 동시 발행
+    // 2. X(트위터) 동시 발행 (2단 타래 및 캐시태그 최적화)
     try {
       const { publishToX } = require('./x_bot.js');
-      console.log('\n🚀 X(트위터) 동시 포스팅 진행...');
-      await publishToX(postContent);
+      console.log('\n🐦 2. X(트위터) 동시 포스팅 진행 (캐시태그 최적화)...');
+      await publishToX(postText, quantData, isPreMarket);
     } catch (xErr) {
       console.warn('⚠️ X 포스팅 건너뜀 또는 오류:', xErr.message);
     }
 
-    // 3. 인스타그램 릴스(Reels) 동시 제작 및 발행
+    // 3. 인스타그램 카드뉴스(캐러셀) 동시 제작 및 발행
+    try {
+      const { createAndPublishDailyCardNews } = require('./instagram_card_bot.js');
+      console.log('\n📸 3. 인스타그램 카드뉴스(캐러셀) 동시 제작 및 발행 진행...');
+      await createAndPublishDailyCardNews(quantData, isPreMarket);
+    } catch (cardErr) {
+      console.warn('⚠️ 인스타그램 카드뉴스 건너뜀 또는 오류:', cardErr.message);
+    }
+
+    // 4. 인스타그램 릴스(Reels) 동시 제작 및 발행
     try {
       const { createAndPublishDailyReel } = require('./instagram_reels_bot.js');
-      console.log('\n🎬 인스타그램 릴스(Reels) 동시 제작 및 발행 진행...');
-      await createAndPublishDailyReel(regime, descs, isPreMarket, postContent);
+      console.log('\n🎬 4. 인스타그램 릴스(Reels) 동시 제작 및 발행 진행...');
+      await createAndPublishDailyReel(quantData.regime, quantData.descs, isPreMarket, postText);
     } catch (reelsErr) {
       console.warn('⚠️ 인스타그램 릴스 건너뜀 또는 오류:', reelsErr.message);
     }
 
-    // 구글 플로우(Google Flow) 숏폼 에셋 패키지 자동 생성 (선택적)
+    // 5. 구글 플로우(Google Flow) 숏폼 에셋 패키지 자동 생성 (선택적)
     try {
       const { generateFlowPackage } = require('./generate_flow_pack.js');
       const topicTitle = isPreMarket ? "미장 개장 전 프리마켓 핵심 지표 점검" : "미장 정규장 마감 퀀트 분석 리포트";
-      await generateFlowPackage(topicTitle, postContent);
+      await generateFlowPackage(topicTitle, postText);
     } catch (flowErr) {
       // 로컬/CI 환경에 sharp/msedge-tts가 없는 경우 안전하게 통과
     }
+
+    console.log('\n🎉 [모든 채널 다중 배포 작업 완료!]');
   } catch (err) {
     console.error('오류 발생:', err.message);
   }
@@ -372,4 +411,13 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { generatePostContent, publishToThreads, evaluateSystemRegime };
+module.exports = {
+  generatePostContent,
+  publishToThreads,
+  evaluateSystemRegime,
+  fetchRealtimeMarketData,
+  calculateWilderRSI,
+  calculateBollingerBandPctB,
+  calculateStochasticSlow,
+  getIndicatorDescs
+};
