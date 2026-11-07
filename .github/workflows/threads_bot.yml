@@ -1,67 +1,78 @@
-name: Quant Multi-Channel Auto Bot (Threads, X & Instagram Reels)
+name: Daily Quant Multi-Channel Bot (Instagram / Threads / X)
 
 on:
-  # 1. 정기 자동 스케줄 (한국시간 기준 평일 2회 정기 발행)
   schedule:
-    # ☀️ [미장 정규장 마감 브리핑 & 오전 숏폼]: 화~토 한국시간 오전 07:00 (UTC 22:00 전날)
-    - cron: '0 22 * * 1-5'
-    # 🌙 [미장 개장 전 프리마켓 & 저녁 숏폼]: 월~금 한국시간 오후 06:00 (UTC 09:00)
-    - cron: '0 9 * * 1-5'
-
-  # 2. 깃허브 Actions 탭에서 'Run workflow' 버튼으로 필요 시 즉시 수동 실행 가능
+    # 1. 한국 시간 오전 07:00 (UTC 전날 22:00) : 미장 정규장 마감 브리핑 & 금일 포지션 권장
+    - cron: '0 22 * * *'
+    # 2. 한국 시간 오후 19:00 (UTC 당일 10:00) : 미장 개장 전 프리마켓 점검 & 오늘 밤 매수 알림
+    - cron: '0 10 * * *'
   workflow_dispatch:
     inputs:
       session:
-        description: '실행 세션 (auto: 시간대 자동 판별, pre: 프리마켓, post: 마감 브리핑)'
+        description: '실행 세션 선택 (auto, pre, post)'
         required: true
         default: 'auto'
         type: choice
         options:
-          - 'auto'
-          - 'pre'
-          - 'post'
+          - auto
+          - pre
+          - post
 
 jobs:
-  publish-multi-channel:
+  run-quant-bot:
     runs-on: ubuntu-latest
-    steps:
-      - name: 저장소 체크아웃
-        uses: actions/checkout@v3
 
-      - name: Node.js 20 설치
-        uses: actions/setup-node@v3
+    steps:
+      - name: 📥 코드 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Node.js 환경 설정
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      # 🎬 릴스 비디오 렌더링을 위한 FFmpeg 및 한글 폰트(Noto CJK, 나눔) 설치
-      - name: FFmpeg 및 한글 폰트 패키지 설치
+      - name: 🐍 Python 환경 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 🔤 한글 폰트 설치 (카드뉴스 이미지 텍스트 무결성 보장)
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-noto-cjk fonts-nanum
+          sudo apt-get install -y fonts-noto-cjk fonts-nanum fonts-nanum-extra
+          fc-cache -fv
 
-      # 📦 package.json에 정의된 모든 패키지(sharp, msedge-tts, twitter-api-v2 등) 설치
-      - name: Node.js 의존성 패키지 설치
-        run: npm install
-
-      - name: 퀀트 봇 실행 및 멀티채널(Threads, X, Reels) 동시 자동 포스팅
-        env:
-          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      - name: 📦 Node.js 및 Python 의존성 패키지 설치
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.session }}" = "pre" ]; then
-              node threads_bot.js pre
-            elif [ "${{ github.event.inputs.session }}" = "post" ]; then
-              node threads_bot.js post
-            else
-              node threads_bot.js
-            fi
+          npm ci || npm install
+          python -m pip install --upgrade pip
+          python -m pip install requests pillow edge-tts
+
+      - name: 🚀 3대 채널 퀀트 매수 알림 봇 실행 (Instagram / Threads / X)
+        env:
+          # 인스타그램 설정
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID || '17841451358369247' }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.PAGE_ACCESS_TOKEN || 'EAAfdZBNdsyFcBS2M1KJU0y0q42RhOGjG5E6elmBUotGXrzoBCJrWgVdcTrOROBRAAeCZBr1Ag47dJyZAX9tWQX3rwt5Yi2fbyZCN00tun1vCJ0LBspiMZCEJkrEmvtrSd6iPbEdpkMk2j6DIiQYoAdjlTHZBKPiGZBnUwiQYt0ZB5z4lqjZCplzgHLRu8hinvnDzmZBUsUBECIxeRXfVF0RvVwccZBwYb8y8MwYkHLnJMeoND0C7FyyYZAuORxIL2JGKpvZBGWwOaSoEEMie4TzxSksadmh434ZAMZD' }}
+          PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN || 'EAAfdZBNdsyFcBS2M1KJU0y0q42RhOGjG5E6elmBUotGXrzoBCJrWgVdcTrOROBRAAeCZBr1Ag47dJyZAX9tWQX3rwt5Yi2fbyZCN00tun1vCJ0LBspiMZCEJkrEmvtrSd6iPbEdpkMk2j6DIiQYoAdjlTHZBKPiGZBnUwiQYt0ZB5z4lqjZCplzgHLRu8hinvnDzmZBUsUBECIxeRXfVF0RvVwccZBwYb8y8MwYkHLnJMeoND0C7FyyYZAuORxIL2JGKpvZBGWwOaSoEEMie4TzxSksadmh434ZAMZD' }}
+          IMGUR_CLIENT_ID: ${{ secrets.IMGUR_CLIENT_ID || '546c25a59c58ad7' }}
+
+          # 쓰레드 설정
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID || '29066378143019292' }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN || 'THAAXRloFIEjRBYmJQdW5rZAVZA3MlhDcjlrY2E3dktSYlJSZAERJdXdqYi1vc3Q0TDNiVDFGZAkZAFZAUlUdFBINXNNZAzhrZAHRBYXA4ZA2pJbDloVnV4NmR6c01BYjU5X0JEVDZASSnNPeXM5dlVrZAUpEa3JpelRfNFpYVXlJenVnemdGZAVlVZAwZDZD' }}
+
+          # X(트위터) 설정
+          X_APP_KEY: ${{ secrets.X_APP_KEY || '6fTtht3ZpM0hE59E6DxsPdwe5' }}
+          X_APP_SECRET: ${{ secrets.X_APP_SECRET || 'STKu7BoFD7ns6Nb3KPvEN8aqkRKxhG38Lp9zzbVSbl8EvTEqiB' }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN || '1524219327683371010-IHrKykf7VbLh07nBtatcPBnHwcKp49' }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET || 'U1itA3sSA8y9HoZqqCsdcS3VAPFRGnk82uC4nCi8gjo7k' }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID || 'UnBtdk5XZjkxc1V0M3c0UFlFc086MTpjaQ' }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET || 'VJEgdMRJ-qhFxkDYmzdOngyQGeuWV0mKarq5347wAS4fbHdpEY' }}
+        run: |
+          if [ "${{ github.event.inputs.session }}" = "pre" ]; then
+            node threads_bot.js pre
+          elif [ "${{ github.event.inputs.session }}" = "post" ]; then
+            node threads_bot.js post
           else
             node threads_bot.js
           fi
