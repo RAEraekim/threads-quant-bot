@@ -198,29 +198,29 @@ function sendRequest(path, postData) {
   });
 }
 
-async function publishToThreads(text) {
-  console.log('📤 1단계: Threads 미디어 컨테이너 생성 중 (토픽: Investing)...');
+async function publishToThreadsSingle(text, tag) {
+  console.log(`📤 1단계: Threads 미디어 컨테이너 생성 중 (토픽: ${tag})...`);
   const containerData = new URLSearchParams({
     media_type: 'TEXT',
     text: text,
-    topic_tag: 'Investing',
+    topic_tag: tag,
     access_token: THREADS_ACCESS_TOKEN
   }).toString();
 
   const res1 = await sendRequest(`/v1.0/${THREADS_USER_ID}/threads`, containerData);
   if (res1.status !== 200 || !res1.body.id) {
-    console.error('❌ 컨테이너 생성 실패:', res1.body);
+    console.error(`❌ [${tag}] 컨테이너 생성 실패:`, res1.body);
     return false;
   }
   const creationId = res1.body.id;
-  console.log(`✅ 컨테이너 생성 완료 (ID: ${creationId})`);
+  console.log(`✅ [${tag}] 컨테이너 생성 완료 (ID: ${creationId})`);
 
   // Meta 서버 분산 DB 동기화 대기 (최소 5초 대기 필수)
-  console.log('⏳ Meta 서버 동기화 대기 중 (5초)...');
+  console.log(`⏳ [${tag}] Meta 서버 동기화 대기 중 (5초)...`);
   await new Promise(r => setTimeout(r, 5000));
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    console.log(`🚀 2단계: Threads 실제 발행 중... (시도 ${attempt}/3)`);
+    console.log(`🚀 [${tag}] 2단계: Threads 실제 발행 중... (시도 ${attempt}/3)`);
     const publishData = new URLSearchParams({
       creation_id: creationId,
       access_token: THREADS_ACCESS_TOKEN
@@ -228,18 +228,35 @@ async function publishToThreads(text) {
 
     const res2 = await sendRequest(`/v1.0/${THREADS_USER_ID}/threads_publish`, publishData);
     if (res2.status === 200 && res2.body.id) {
-      console.log(`🎉 포스팅 성공! (게시물 ID: ${res2.body.id})`);
+      console.log(`🎉 [${tag}] 포스팅 성공! (게시물 ID: ${res2.body.id})`);
       return res2.body.id;
     }
 
     if (attempt < 3) {
-      console.log('⏳ Meta 서버 동기화 지연 감지, 3초 후 재시도...');
+      console.log(`⏳ [${tag}] Meta 서버 동기화 지연 감지, 3초 후 재시도...`);
       await new Promise(r => setTimeout(r, 3000));
     } else {
-      console.error('❌ 포스팅 발행 실패:', res2.body);
+      console.error(`❌ [${tag}] 포스팅 발행 실패:`, res2.body);
       return false;
     }
   }
+}
+
+async function publishToThreads(text) {
+  console.log('📱 Threads 2대 커뮤니티 동시 발행 시작 (Investing & QLD)...');
+  const results = {};
+
+  // 1. Investing 커뮤니티 발행
+  results.investing = await publishToThreadsSingle(text, 'Investing');
+
+  // 토픽 간 Meta 분산 DB 동기화 대기 (5초)
+  console.log('⏳ 다음 토픽(QLD) 발행 전 대기 (5초)...');
+  await new Promise(r => setTimeout(r, 5000));
+
+  // 2. QLD 커뮤니티 발행
+  results.qld = await publishToThreadsSingle(text, 'QLD');
+
+  return results;
 }
 
 // ============================================================================
