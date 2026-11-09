@@ -91,12 +91,14 @@ function getIndicatorDescs(disp, rsi, bb, stoch, vix, heatIndex, disp60w = 0, di
   let dispDesc = '';
   if (disp >= 10) dispDesc = '대세 상승 순항';
   else if (disp > 0) dispDesc = '200일선 상회';
-  else if (disp60w >= -2.5) dispDesc = '주봉 60주선 지지';
-  else if (disp120w >= -3.5) dispDesc = '120주 마지노선';
+  else if (disp60w >= 0) dispDesc = '주봉 60주선 지지';
+  else if (disp60w >= -2.5) dispDesc = '60주선 기로(주의)';
+  else if (disp120w >= -3.5) dispDesc = '60주 이탈(120주행)';
   else dispDesc = '매크로 추세 이탈';
 
-  const w60Desc = disp60w >= 5 ? '중기 추세 순항' : disp60w >= -2.5 ? '60주 핵심 지지권' : '60주선 하회';
+  const w60Desc = disp60w >= 5 ? '중기 추세 순항' : disp60w >= 0 ? '60주선 지지권' : disp60w >= -2.5 ? '60주선 이탈 경계' : '60주선 붕괴';
   const w120Desc = disp120w >= 10 ? '장기 정배열 견고' : disp120w >= -3.5 ? '120주 인생지지권' : '장기 추세 붕괴';
+  const weeklyDesc = `60주(${disp60w >= 0 ? '+' : ''}${disp60w.toFixed(1)}%) · 120주(${disp120w >= 0 ? '+' : ''}${disp120w.toFixed(1)}%)`;
 
   const rsiDesc = rsi >= 70 ? '고점 과열권' : rsi <= 35 ? '단기 침체권' : rsi <= 45 ? '침체 탈출 시도' : '중립 안정권';
   const bbDesc = bb >= 80 ? '상단 밴드 근접' : bb <= 0 ? '하단 이탈(투매)' : bb <= 25 ? '하단 밴드 지지' : '밴드 내 순항';
@@ -104,7 +106,7 @@ function getIndicatorDescs(disp, rsi, bb, stoch, vix, heatIndex, disp60w = 0, di
   const vixDesc = vix >= 25 ? '극심한 공포' : vix >= 20 ? '공포 심리 유입' : vix >= 16 ? '공포 완화 중' : '안정 국면 유지';
   const heatDesc = heatIndex >= 75 ? '고점 과열 경보' : heatIndex <= 30 ? '극단 침체 구간' : heatIndex <= 50 ? '눌림목 변곡점' : '적정 안정 구간';
 
-  return { dispDesc, w60Desc, w120Desc, rsiDesc, bbDesc, stochDesc, vixDesc, heatDesc };
+  return { dispDesc, w60Desc, w120Desc, weeklyDesc, rsiDesc, bbDesc, stochDesc, vixDesc, heatDesc };
 }
 
 // ============================================================================
@@ -158,28 +160,36 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       bottomText = "일봉·주봉 정배열 추세 양호. 기본 루틴을 진행합니다.";
     }
   } else {
-    // [구간 B] 일봉 200일선 아래 — 주봉 60주선 & 120주선으로 '눌림목' vs '대폭락장' 판독!
-    const isWeekly60Support = (disp60w >= -2.5) && weeklyBullAligned && (slope60w >= -0.3);
-    const isNearWeekly120 = (disp120w >= -3.5 && disp120w <= 4.0) && weeklyBullAligned;
+    // [구간 B] 일봉 200일선 아래 — 보수적 생존 프로토콜 (방안 1: 지지·반등 확인 전까지 QLD 0% 방어 우선)
+    const isWeekly60BounceConfirmed = (disp60w >= 0.0) && weeklyBullAligned && (slope60w >= 0.0) && (vix < 22.0 && aboveSma20);
+    const isWeekly60Testing = (disp60w >= -2.5) && weeklyBullAligned;
+    const isNearWeekly120 = (disp120w >= -3.5 && disp120w <= 3.0) && weeklyBullAligned;
 
-    if ((vix < 22.0 && aboveSma20) || (isNearWeekly120 && (rsi <= 38.0 || aboveSma20))) {
-      // [4] 바닥 반등 확인 or 주봉 120주선 인생 지지선 스나이퍼 포착
+    if ((isNearWeekly120 && (aboveSma20 || (rsi <= 35.0 && vix < 24.0))) || (disp60w < -2.0 && vix < 21.0 && aboveSma20)) {
+      // [4] 주봉 120주선 인생 지지선 반등 or 깊은 조정 후 VIX 안정 + 20일선 돌파 확정
       headline = '"공포의 극점이 지났다, 비축한 실탄을 발사한다."';
-      subIntro = "주봉 핵심 지지선 위에서 반등 신호가 포착되었습니다. 비축한 현금 및 GPIX 배당 실탄을 3배 레버리지(TQQQ)에 집중 투입합니다.";
+      subIntro = "주봉 핵심 지지선에서 바닥 반등 신호가 확정되었습니다. 비축한 현금 및 GPIX 배당 실탄을 3배 레버리지(TQQQ)에 집중 투입합니다.";
       badge = "🎯골든스나이퍼";
       posText = "• TQQQ: 80% (바닥 반등 확인! 집중 타격)\n• GPIX: 20% (잔여 방어 유지)";
-      bottomText = "주봉 지지 및 반등 확인. 집중 타격을 개시합니다.";
-    } else if (isWeekly60Support) {
-      // [5] 일봉 200일선은 이탈했으나 주봉 60주선 핵심 지지 중 (25년 역사적 1년 승률 86.8% 눌림목 구간!)
-      headline = '"일봉은 흔들려도, 주봉 60주선 지지는 기회다."';
-      subIntro = "일봉 200일선은 소폭 이탈했으나 주봉 60·120주선 정배열이 살아있는 중기 눌림목(승률 86.8%) 구간입니다. 50:50 분할 매수와 방어를 병행합니다.";
-      badge = "🟡60주선눌림목";
-      posText = "• QLD: 50% (주봉 60주선 지지 분할매수)\n• GPIX: 50% (방어 및 배당 실탄 축적)";
-      bottomText = "주봉 60·120주 정배열 유지 중. 50:50 눌림목 대응을 실행합니다.";
+      bottomText = "주봉 지지 및 반등 확정. 집중 타격을 개시합니다.";
+    } else if (isWeekly60BounceConfirmed) {
+      // [5] 주봉 60주선 위 지지 + VIX 안정 + 일봉 20일선 탈환이 모두 확인된 안전한 눌림목 반등
+      headline = '"주봉 60주선 지지와 반등 확인, 절반씩 진입한다."';
+      subIntro = "일봉 200일선 아래이나 주봉 60주선 지지와 단기 반등(20일선 회복·VIX 안정)이 확인되었습니다. 50:50 비율로 안전하게 분할 진입합니다.";
+      badge = "🟡60주선반등";
+      posText = "• QLD: 50% (60주선 반등 확인 분할매수)\n• GPIX: 50% (방어 및 배당 실탄 축적)";
+      bottomText = "60주선 지지 반등 확인. 50:50 분할 대응을 실행합니다.";
+    } else if (isWeekly60Testing) {
+      // [6] 주봉 60주선에 걸쳐 있거나 소폭 이탈한 채 아직 반등 신호가 없는 위험 기로 (현재 시황!)
+      headline = '"60주선 외줄타기 구간, 지지 확인 전엔 사지 않는다."';
+      subIntro = "200일선 이탈 후 주봉 60주선 지지를 시험하는 변곡점입니다. 붕괴 시 120주선까지 열려 있어 반등 확인 전까지 QLD를 멈추고 실탄만 모읍니다.";
+      badge = "🚨60주선관망";
+      posText = "• QLD: 0% (매수 보류! 60주선 지지 확인 대기)\n• GPIX: 100% (원금 방어 & 배당 실탄 비축)";
+      bottomText = "60주선 반등 확인 또는 120주선 도달 전까지 매수를 금합니다.";
     } else {
-      // [6] 주봉 60주선 붕괴 낙하 중 or 주봉 120주선 마지노선 이탈 (진짜 대세 하락장)
-      headline = '"주봉 지지선이 무너졌다, 칼날을 잡지 마라."';
-      subIntro = "일봉 200일선에 이어 주봉 60주선까지 이탈한 하락 구간입니다. 주봉 120주선 지지 또는 반등 확인 전까지 매수를 동결하고 배당 실탄만 비축합니다.";
+      // [7] 주봉 60주선 완전 붕괴 낙하 중 (주봉 120주선 마지노선까지 대기)
+      headline = '"주봉 60주선이 무너졌다, 120주선까지 칼날을 피해라."';
+      subIntro = "200일선에 이어 주봉 60주선까지 붕괴된 하락 구간입니다. 주봉 120주선 대바닥 지지 또는 반등 확인 전까지 매수를 동결하고 배당 실탄만 비축합니다.";
       badge = "🚨실탄비축(하락)";
       posText = "• QLD: 0% (매수 전면 동결! 하락 진행)\n• GPIX: 100% (MDD 방어 & 실탄 100% 비축)";
       bottomText = "주봉 120주선 지지 또는 반등 전까지 매수를 금합니다.";

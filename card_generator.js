@@ -28,9 +28,9 @@ function generateSlide1Svg({ regime, disp, disp60w = 0, disp120w = 10, rsi, bb, 
 
   // 포지션 상태 및 비율 파싱 (정확한 접두사 매칭으로 50%/30%와 0% 혼동 방지)
   const isSniper = regime.badge.includes("스나이퍼") || regime.posText.includes("TQQQ: 80%");
-  const isFreeze = regime.posText.includes("QLD: 0%") || regime.badge.includes("실탄비축");
+  const isFreeze = regime.posText.includes("QLD: 0%") || regime.badge.includes("실탄비축") || regime.badge.includes("관망");
   const isHighHeat = regime.posText.includes("QLD: 30%") || regime.badge.includes("고점과열");
-  const isPullback50 = regime.posText.includes("QLD: 50%") || regime.badge.includes("60주선") || regime.badge.includes("지지선점검");
+  const isPullback50 = regime.posText.includes("QLD: 50%") || regime.badge.includes("반등") || regime.badge.includes("지지선점검");
 
   let box1Title = "QLD";
   let box1Sub = "나스닥 2배 레버리지";
@@ -72,7 +72,7 @@ function generateSlide1Svg({ regime, disp, disp60w = 0, disp120w = 10, rsi, bb, 
     box2Color = "#10b981";
   } else if (isPullback50) {
     box1Ratio = "50%";
-    box1Badge = "● 60주선 눌림목 추매";
+    box1Badge = "● 60주선 반등 확인 추매";
     box1Color = "#fbbf24";
 
     box2Ratio = "50%";
@@ -315,30 +315,30 @@ function generateSlide3Svg() {
       <text x="0" y="75" fill="#f8fafc" font-family="${FONT_FAMILY}" font-size="44" font-weight="900">주봉 60·120주 기반 3단계 생존 원칙</text>
     </g>
 
-    <!-- 원칙 1: 상승장 & 60주선 눌림목 -->
+    <!-- 원칙 1: 상승장 & 60주선 반등 확인 -->
     <g transform="translate(80, 195)">
       <rect width="920" height="175" rx="20" fill="#151b26" stroke="#10b981" stroke-width="1.5"/>
       <circle cx="50" cy="50" r="18" fill="#10b981" fill-opacity="0.2"/>
       <text x="50" y="57" text-anchor="middle" fill="#10b981" font-family="${FONT_FAMILY}" font-size="22" font-weight="800">1</text>
       
-      <text x="85" y="57" fill="#ffffff" font-family="${FONT_FAMILY}" font-size="27" font-weight="800">200일선 순항 &amp; 주봉 60주선 눌림목</text>
+      <text x="85" y="57" fill="#ffffff" font-family="${FONT_FAMILY}" font-size="27" font-weight="800">200일선 순항 &amp; 60주선 반등 확인</text>
       <text x="880" y="57" text-anchor="end" fill="#10b981" font-family="${FONT_FAMILY}" font-size="23" font-weight="800">QLD 50~75% + GPIX</text>
 
-      <text x="45" y="108" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="21">200일선 위에선 QLD 75% 복리 가속, 200일선 이탈 시에도</text>
-      <text x="45" y="142" fill="#38bdf8" font-family="${FONT_FAMILY}" font-size="21" font-weight="600">주봉 60주선 지지(승률 86.8% 구간)가 살아있으면 50% 눌림목 매수를 유지합니다.</text>
+      <text x="45" y="108" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="21">일봉 200일선 위에선 QLD 75% 복리 가속, 200일선 이탈 시에는</text>
+      <text x="45" y="142" fill="#38bdf8" font-family="${FONT_FAMILY}" font-size="21" font-weight="600">주봉 60주선 지지와 단기 반등(20일선 회복)이 확인될 때만 50% 진입합니다.</text>
     </g>
 
-    <!-- 원칙 2: 60주선 붕괴 하락장 -->
+    <!-- 원칙 2: 60주선 외줄타기 & 붕괴 하락장 -->
     <g transform="translate(80, 395)">
       <rect width="920" height="175" rx="20" fill="#151b26" stroke="#ef4444" stroke-width="1.5"/>
       <circle cx="50" cy="50" r="18" fill="#ef4444" fill-opacity="0.2"/>
       <text x="50" y="57" text-anchor="middle" fill="#ef4444" font-family="${FONT_FAMILY}" font-size="22" font-weight="800">2</text>
       
-      <text x="85" y="57" fill="#ffffff" font-family="${FONT_FAMILY}" font-size="27" font-weight="800">주봉 60주선 붕괴 &amp; 대세 하락 진행</text>
+      <text x="85" y="57" fill="#ffffff" font-family="${FONT_FAMILY}" font-size="27" font-weight="800">60주선 외줄타기 &amp; 하락 진행 구간</text>
       <text x="880" y="57" text-anchor="end" fill="#ef4444" font-family="${FONT_FAMILY}" font-size="23" font-weight="800">QLD 0% | GPIX 100%</text>
 
-      <text x="45" y="108" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="21">주봉 60주선마저 무너지면 떨어지는 칼날을 잡지 않습니다.</text>
-      <text x="45" y="142" fill="#f87171" font-family="${FONT_FAMILY}" font-size="21" font-weight="600">레버리지 매수를 전면 동결하고 S&amp;P500 월배당(GPIX 연 8.3%) 실탄만 모읍니다.</text>
+      <text x="45" y="108" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="21">60주선에 위태롭게 걸치거나 붕괴되면 120주선까지 열려 있습니다.</text>
+      <text x="45" y="142" fill="#f87171" font-family="${FONT_FAMILY}" font-size="21" font-weight="600">반등 확인 전까지 QLD 매수를 0%로 멈추고 GPIX(연 8.3%) 배당 실탄만 모읍니다.</text>
     </g>
 
     <!-- 원칙 3: 120주선 마지노선 & 바닥 반등 타격 -->

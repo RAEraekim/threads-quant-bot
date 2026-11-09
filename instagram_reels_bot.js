@@ -82,14 +82,14 @@ function generateSlideSvg(item) {
         <g transform="translate(0, 95)">
           <rect width="780" height="110" rx="20" fill="#18202f" stroke="${item.id === 2 ? '#38bdf8' : '#1e293b'}" stroke-width="${item.id === 2 ? '2' : '1'}"/>
           <text x="35" y="48" fill="#38bdf8" font-family="${FONT_FAMILY}" font-size="28" font-weight="900">1. QLD (나스닥 2배 주력 엔진)</text>
-          <text x="35" y="85" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="22">일봉 200일선 위 75% · 주봉 60주선 눌림목 50% 적립</text>
+          <text x="35" y="85" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="22">일봉 200일선 위 75% · 60주선 반등 확인 시 50% 적립</text>
           ${item.id === 2 ? '<text x="735" y="65" text-anchor="end" fill="#38bdf8" font-size="30">🚀</text>' : ''}
         </g>
 
         <g transform="translate(0, 235)">
           <rect width="780" height="110" rx="20" fill="#18202f" stroke="${item.id === 3 ? '#34d399' : '#1e293b'}" stroke-width="${item.id === 3 ? '2' : '1'}"/>
           <text x="35" y="48" fill="#34d399" font-family="${FONT_FAMILY}" font-size="28" font-weight="900">2. GPIX (월배당 캐시카우 방패)</text>
-          <text x="35" y="85" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="22">주봉 60주선 붕괴 시 QLD 중단 &amp; 연 8.3% 배당 실탄 비축</text>
+          <text x="35" y="85" fill="#94a3b8" font-family="${FONT_FAMILY}" font-size="22">60주선 외줄타기·이탈 시 QLD 0% &amp; 연 8.3% 배당 비축</text>
           ${item.id === 3 ? '<text x="735" y="65" text-anchor="end" fill="#34d399" font-size="30">🛡️</text>' : ''}
         </g>
 
@@ -333,23 +333,23 @@ async function createAndPublishDailyReel(regime, descs, isPreMarket, postContent
     },
     {
       id: 2,
-      tag: "🚀 STEP 1. 상승 & 60주선 눌림",
+      tag: "🚀 STEP 1. 상승 & 지지 확인",
       themeColor: "#38bdf8",
       tagBg: "#0284c7",
-      mainText: "200일·60주선 위? QLD 폭격!",
-      subHighlight: "일봉 200일선 위 75%, 주봉 60주선 지지 시 50%",
-      desc: "25년 백테스트 승률 86.8% 핵심 추세 구간",
-      script: "일봉 200일선 위 대세 상승장엔 큐엘디 75%, 일봉이 깨져도 주봉 60주선이 버티면 50% 눌림목 매수로 복리를 극대화합니다."
+      mainText: "지지 확인될 때만 QLD 폭격!",
+      subHighlight: "200일선 위 75%, 60주선 반등 확인 시 50%",
+      desc: "떨어지는 칼날은 패스, 확실한 지지에서만 가속",
+      script: "일봉 200일선 위 대세 상승장엔 큐엘디 75%, 조정 시에도 주봉 60주선 지지와 반등이 확인될 때만 진입합니다."
     },
     {
       id: 3,
-      tag: "🛡️ STEP 2. 주봉 60주선 붕괴",
+      tag: "🛡️ STEP 2. 60주선 위험·이탈",
       themeColor: "#34d399",
       tagBg: "#059669",
-      mainText: "60주선 붕괴? 매수 전면 STOP!",
-      subHighlight: "내 쌩돈 1원도 안 태우고, 연 8.3% 월배당 축적",
-      desc: "GPIX 방패로 원금 지키며 주봉 120주선 대기",
-      script: "하지만 주봉 60주선이 진짜 무너지면 레버리지 매수 전면 스톱! 지픽스 월배당으로 연 8.3% 현금 총알만 복사합니다."
+      mainText: "애매한 자리? 매수 전면 STOP!",
+      subHighlight: "60주선 외줄타기·이탈 시 QLD 0% 관망",
+      desc: "GPIX 월배당(연 8.3%) 모으며 120주선 대기",
+      script: "60주선에 위태롭게 걸치거나 무너지면 매수 전면 스톱! 지픽스 월배당으로 연 8.3% 현금 총알만 모으며 120주선을 기다립니다."
     },
     {
       id: 4,
