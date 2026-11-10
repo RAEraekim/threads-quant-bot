@@ -133,6 +133,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
   let subIntro = "";
   let badge = "🟢골디락스";
   let posText = "• QLD: 75% (안정 적립 프로토콜 실행)\n• GPIX: 25% (현금흐름 방어 유지)";
+  let ratioSummary = "(QLD 75% / TQQQ 0% / GPIX 25% / 현금·채권 0%)";
   let bottomText = "일봉 200일선 및 주봉 60·120주선 정배열 순항. 기본 루틴 적립을 진행합니다.";
 
   if (disp > 0) {
@@ -143,6 +144,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "단기 과열 경보가 발령되었습니다. 추격 매수를 멈추고 GPIX 월배당(연 8.3%) 비중을 확대해 조정 안전 마진을 확보합니다.";
       badge = "💰고점과열";
       posText = "• QLD: 30% (레버리지 비중 축소)\n• GPIX: 70% (방어자산 대폭 확대)";
+      ratioSummary = "(QLD 30% / TQQQ 0% / GPIX 50% / 현금·채권 20%)";
       bottomText = "고점 과열 경보. 방어자산 비중을 확대합니다.";
     } else if (disp <= 2.0 && vix >= 22.0 && !aboveSma20) {
       // [2] 200일선 테스트 경계 (주봉 60주선 위이므로 전면 동결 대신 50:50 속도 조절)
@@ -150,6 +152,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "일봉 200일선 지지 테스트 구간이나 주봉 60·120주선 상승 추세는 견고합니다. 공격과 방어를 50:50으로 균형 배치합니다.";
       badge = "🟡지지선점검";
       posText = "• QLD: 50% (분할 적립 속도 조절)\n• GPIX: 50% (방어 및 배당 실탄 확충)";
+      ratioSummary = "(QLD 50% / TQQQ 0% / GPIX 30% / 현금·채권 20%)";
       bottomText = "주봉 추세 양호. 50:50 균형 적립으로 대응합니다.";
     } else {
       // [3] 진짜 골디락스 (일봉 200일선 & 주봉 60·120주선 정배열 순항)
@@ -157,6 +160,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "일봉 200일선 및 주봉 60·120주선 정배열 구간입니다. QLD로 복리 성장을 견인하되 GPIX 월배당(연 8.3%)을 상시 적립해 조정에 대비합니다.";
       badge = "🟢골디락스";
       posText = "• QLD: 75% (안정 적립 프로토콜 실행)\n• GPIX: 25% (현금흐름 방어 유지)";
+      ratioSummary = "(QLD 75% / TQQQ 0% / GPIX 25% / 현금·채권 0%)";
       bottomText = "일봉·주봉 정배열 추세 양호. 기본 루틴을 진행합니다.";
     }
   } else {
@@ -171,6 +175,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "주봉 핵심 지지선에서 바닥 반등 신호가 확정되었습니다. 비축한 현금 및 GPIX 배당 실탄을 3배 레버리지(TQQQ)에 집중 투입합니다.";
       badge = "🎯골든스나이퍼";
       posText = "• TQQQ: 80% (바닥 반등 확인! 집중 타격)\n• GPIX: 20% (잔여 방어 유지)";
+      ratioSummary = "(QLD 0% / TQQQ 80% / GPIX 20% / 현금·채권 0%)";
       bottomText = "주봉 지지 및 반등 확정. 집중 타격을 개시합니다.";
     } else if (isWeekly60BounceConfirmed) {
       // [5] 주봉 60주선 위 지지 + VIX 안정 + 일봉 20일선 탈환이 모두 확인된 안전한 눌림목 반등
@@ -178,6 +183,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "일봉 200일선 아래이나 주봉 60주선 지지와 단기 반등(20일선 회복·VIX 안정)이 확인되었습니다. 50:50 비율로 안전하게 분할 진입합니다.";
       badge = "🟡60주선반등";
       posText = "• QLD: 50% (60주선 반등 확인 분할매수)\n• GPIX: 50% (방어 및 배당 실탄 축적)";
+      ratioSummary = "(QLD 50% / TQQQ 0% / GPIX 30% / 현금·채권 20%)";
       bottomText = "60주선 지지 반등 확인. 50:50 분할 대응을 실행합니다.";
     } else if (isWeekly60Testing) {
       // [6] 주봉 60주선에 걸쳐 있거나 소폭 이탈한 채 아직 반등 신호가 없는 위험 기로 (현재 시황!)
@@ -185,6 +191,7 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "200일선 이탈 후 주봉 60주선 지지를 시험하는 변곡점입니다. 붕괴 시 120주선까지 열려 있어 반등 확인 전까지 QLD를 멈추고 실탄만 모읍니다.";
       badge = "🚨60주선관망";
       posText = "• QLD: 0% (매수 보류! 60주선 지지 확인 대기)\n• GPIX: 100% (원금 방어 & 배당 실탄 비축)";
+      ratioSummary = "(QLD 0% / TQQQ 0% / GPIX 50% / 현금·채권 50%)";
       bottomText = "60주선 반등 확인 또는 120주선 도달 전까지 매수를 금합니다.";
     } else {
       // [7] 주봉 60주선 완전 붕괴 낙하 중 (주봉 120주선 마지노선까지 대기)
@@ -192,11 +199,12 @@ function evaluateSystemRegime(disp, rsi, bb, stoch, vix, aboveSma20, weeklyData 
       subIntro = "200일선에 이어 주봉 60주선까지 붕괴된 하락 구간입니다. 주봉 120주선 대바닥 지지 또는 반등 확인 전까지 매수를 동결하고 배당 실탄만 비축합니다.";
       badge = "🚨실탄비축(하락)";
       posText = "• QLD: 0% (매수 전면 동결! 하락 진행)\n• GPIX: 100% (MDD 방어 & 실탄 100% 비축)";
+      ratioSummary = "(QLD 0% / TQQQ 0% / GPIX 50% / 현금·채권 50%)";
       bottomText = "주봉 120주선 지지 또는 반등 전까지 매수를 금합니다.";
     }
   }
 
-  return { heatIndex, badge, headline, subIntro, posText, bottomText };
+  return { heatIndex, badge, headline, subIntro, posText, ratioSummary, bottomText };
 }
 
 // ============================================================================
@@ -383,42 +391,61 @@ async function fetchRealtimeMarketData() {
 }
 
 // ============================================================================
-// 7. 포스팅 텍스트 생성기 (일봉 200일 + 주봉 60·120주선 표시)
+// 7. 포스팅 텍스트 생성기 (예시 A: 초간결 5대 지표 신호등 + 적립식 비중 + 면책)
 // ============================================================================
 async function generatePostContent(isPreMarket, preloadedData = null) {
   const quantData = preloadedData || await fetchRealtimeMarketData();
-  const { disp, disp60w, disp120w, rsi, bb, stoch, vix, regime, descs } = quantData;
+  const { disp, disp60w, disp120w, rsi, bb, stoch, vix, regime } = quantData;
+
+  const sessionTitle = isPreMarket ? "🌙 프리마켓 점검" : "☀️ 정규장 마감";
+
+  // 신호등 판정
+  let wLight = '🟢';
+  if (disp60w < -2.5) wLight = '🔴';
+  else if (disp60w < 0 || disp120w < 0) wLight = '🟡';
+
+  let dLight = '🟢';
+  if (disp < -3.0) dLight = '🔴';
+  else if (disp < 0) dLight = '🟡';
+
+  let rsiLight = '🟢';
+  if (rsi <= 35 || rsi >= 70) rsiLight = '🔴';
+  else if (rsi < 45 || rsi > 65) rsiLight = '🟡';
+
+  let bbLight = '🟢';
+  if (bb <= 10 || bb >= 90) bbLight = '🔴';
+  else if (bb < 30 || bb > 70) bbLight = '🟡';
+
+  let stochLight = '🟢';
+  if (stoch <= 20 || stoch >= 80) stochLight = '🔴';
+  else if (stoch < 30 || stoch > 70) stochLight = '🟡';
+
+  let vixLight = '🟢';
+  if (vix >= 24) vixLight = '🔴';
+  else if (vix >= 18) vixLight = '🟡';
 
   const dispSign = disp >= 0 ? '+' : '';
   const w60Sign = disp60w >= 0 ? '+' : '';
   const w120Sign = disp120w >= 0 ? '+' : '';
-  const sessionHeader = isPreMarket ? "오늘 밤 권장 포지션" : "익일 권장 포지션";
-  const systemHeader = isPreMarket ? "🌙 [오후 19:00 프리마켓 매수 알림]" : "☀️ [오전 07:00 정규장 마감 브리핑]";
 
-  let postText = `[SYSTEM REPORT: QLD 절대 생존 퀀트]
-${systemHeader}
-${regime.headline}
+  let postText = `[QLD 퀀트 브리핑 | ${sessionTitle}]
 
-${regime.subIntro}
+■ 5대 지표 신호등 현황
+• 주봉 60·120주: ${wLight} ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}%
+• 일봉 200일선: ${dLight} ${dispSign}${disp.toFixed(1)}%
+• 일봉 RSI(14): ${rsiLight} ${rsi.toFixed(1)}
+• 볼린저밴드 %B: ${bbLight} ${bb.toFixed(1)}%
+• 스토캐스틱 %D: ${stochLight} ${stoch.toFixed(1)}
+• VIX 공포지수: ${vixLight} ${vix.toFixed(1)}
 
-■ 현재 시장 냉정 진단 (${regime.badge})
-• 주봉 60·120주: ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}% (${descs.dispDesc})
-• 일봉 200일선: ${dispSign}${disp.toFixed(1)}% | RSI: ${rsi.toFixed(1)} (${descs.rsiDesc})
-• 볼린저 %B: ${bb.toFixed(1)}% | 스토캐스틱: ${stoch.toFixed(1)}
-• VIX 공포지수: ${vix.toFixed(1)} | 과열도: ${regime.heatIndex}점 (${descs.heatDesc})
+■ 현재 종합 점수: ${regime.heatIndex}점 / 100점 (${regime.badge})
+👉 오늘 적립식 매수한다면 ?
+${regime.ratioSummary}
 
-■ ${sessionHeader}
-${regime.posText}
+※ 본 글은 투자 권유를 하고 있지 않으며 관점만 공유드립니다.
+📸 인스타그램: @safety_qld_bot
 
-${regime.bottomText}
-
-#미국주식 #나스닥 #QLD #GPIX #investing`;
-
-  // 500자 안전 장치
-  if (postText.length > 500) {
-    console.warn(`⚠️ 경고: 글자 수(${postText.length}자) 초과 방지를 위한 안전 조정 실행`);
-    postText = postText.replace('#미국주식 #나스닥 #QLD #GPIX #investing', '#나스닥 #QLD #GPIX');
-  }
+#미국주식 #나스닥 #QLD #TQQQ #GPIX`;
 
   return { postText, postContent: postText, quantData };
 }

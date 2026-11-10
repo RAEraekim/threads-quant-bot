@@ -16,37 +16,65 @@ function getTwitterLength(text) {
   return len;
 }
 
-// X(트위터) 정책 최적화 포맷팅 (캐시태그 트윗당 1개 엄격 준수 + 280 규격 + 주봉 60·120주 반영)
+// X(트위터) 정책 최적화 포맷팅 (예시 A: 5대 지표 신호등 + 적립식 비중 + 면책문구)
 function buildTweetsForX(quantData, isPreMarket) {
-  const { regime, disp, disp60w = 0, disp120w = 10, vix, descs } = quantData;
+  const { regime, disp, disp60w = 0, disp120w = 10, rsi, bb, stoch, vix } = quantData;
   const dispSign = disp >= 0 ? '+' : '';
   const w60Sign = disp60w >= 0 ? '+' : '';
   const w120Sign = disp120w >= 0 ? '+' : '';
-  const sessionTitle = isPreMarket ? "🌙 [프리마켓 매수 알림]" : "☀️ [정규장 마감 브리핑]";
-  const posAction = isPreMarket ? "오늘 밤 권장" : "익일 권장";
+  const sessionTitle = isPreMarket ? "🌙 프리마켓 점검" : "☀️ 정규장 마감";
 
-  // 장세에 따른 단일 캐시태그 선택 (트윗당 1개 제한, 정확한 0% 매칭)
-  const isFreeze = regime.posText.includes("QLD: 0%") || regime.badge.includes("실탄비축");
-  const tag1 = isFreeze ? "$GPIX" : "$QLD";
-  const tag2 = isFreeze ? "$QLD" : "$GPIX";
+  // 신호등 판정
+  let wLight = '🟢';
+  if (disp60w < -2.5) wLight = '🔴';
+  else if (disp60w < 0 || disp120w < 0) wLight = '🟡';
 
-  // 1번 트윗: 핵심 진단 & 매수/관망 포지션
-  const tweet1 = `${sessionTitle}
-${regime.headline}
+  let dLight = '🟢';
+  if (disp < -3.0) dLight = '🔴';
+  else if (disp < 0) dLight = '🟡';
 
-■ ${posAction} 포지션 (${regime.badge})
-${regime.posText.replace(isFreeze ? 'GPIX' : 'QLD', tag1)}
+  let rsiLight = '🟢';
+  if (rsi <= 35 || rsi >= 70) rsiLight = '🔴';
+  else if (rsi < 45 || rsi > 65) rsiLight = '🟡';
 
-💡 일봉 노이즈는 주봉 60·120주선으로 거르고 대응합니다. (1/2 🧵👇)`;
+  let bbLight = '🟢';
+  if (bb <= 10 || bb >= 90) bbLight = '🔴';
+  else if (bb < 30 || bb > 70) bbLight = '🟡';
 
-  // 2번 트윗: 주봉·일봉 핵심 지표 & 인스타 링크
-  const tweet2 = `■ 주봉·일봉 5대 퀀트 지표
-• 주봉 60·120주: ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}% (${descs.dispDesc})
-• 일봉 200일선: ${dispSign}${disp.toFixed(1)}% | VIX: ${vix.toFixed(1)}
-• 복합 과열도: ${regime.heatIndex}점 (${descs.heatDesc})
+  let stochLight = '🟢';
+  if (stoch <= 20 || stoch >= 80) stochLight = '🔴';
+  else if (stoch < 30 || stoch > 70) stochLight = '🟡';
 
-방어와 반등 타격은 ${tag2} 시스템으로 실행!
-instagram.com/safety_qld_bot (2/2)`;
+  let vixLight = '🟢';
+  if (vix >= 24) vixLight = '🔴';
+  else if (vix >= 18) vixLight = '🟡';
+
+  // 장세에 따른 단일 캐시태그 선택 (트윗당 1개 제한)
+  const isFreeze = regime.posText.includes("QLD: 0%") || regime.badge.includes("실탄비축") || regime.badge.includes("관망");
+  const targetTag = isFreeze ? "$GPIX" : "$QLD";
+
+  // 1번 트윗: 5대 지표 신호등 현황
+  const tweet1 = `[QLD 퀀트 브리핑 | ${sessionTitle}]
+
+■ 5대 지표 신호등 현황
+• 주봉 60·120주: ${wLight} ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}%
+• 일봉 200일선: ${dLight} ${dispSign}${disp.toFixed(1)}%
+• 일봉 RSI(14): ${rsiLight} ${rsi.toFixed(1)}
+• 볼린저밴드 %B: ${bbLight} ${bb.toFixed(1)}%
+• 스토캐스틱 %D: ${stochLight} ${stoch.toFixed(1)}
+• VIX 공포지수: ${vixLight} ${vix.toFixed(1)} (1/2 🧵👇)`;
+
+  // 2번 트윗: 종합 점수 & 오늘 적립식 매수한다면? & 면책
+  const ratioWithTag = (regime.ratioSummary || "(QLD 0% / TQQQ 0% / GPIX 50% / 현금·채권 50%)")
+    .replace(isFreeze ? 'GPIX' : 'QLD', targetTag);
+
+  const tweet2 = `■ 현재 종합 점수: ${regime.heatIndex}점 / 100점 (${regime.badge})
+
+👉 오늘 적립식 매수한다면 ?
+${ratioWithTag}
+
+※ 본 글은 투자 권유를 하고 있지 않으며 관점만 공유드립니다.
+📸 인스타그램: instagram.com/safety_qld_bot (2/2)`;
 
   return [tweet1, tweet2];
 }

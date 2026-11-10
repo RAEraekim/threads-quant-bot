@@ -210,15 +210,39 @@ async function publishInstagramCarousel(imagePaths, caption) {
 }
 
 // ============================================================================
-// 5. 캡션 생성 헬퍼 (주봉 60·120주 + 일봉 200일 반영)
+// 5. 캡션 생성 헬퍼 (예시 A: 5대 지표 신호등 + 적립식 비중 + 면책)
 // ============================================================================
 function buildInstagramCaption(quantData, isPreMarket) {
-  const { regime, descs, disp, disp60w = 0, disp120w = 10, rsi, bb, stoch, vix } = quantData;
+  const { regime, disp, disp60w = 0, disp120w = 10, rsi, bb, stoch, vix } = quantData;
   const dispSign = disp >= 0 ? '+' : '';
   const w60Sign = disp60w >= 0 ? '+' : '';
   const w120Sign = disp120w >= 0 ? '+' : '';
-  const sessionTitle = isPreMarket ? "🌙 [오후 19:00 프리마켓 점검 & 매수 알림]" : "☀️ [오전 07:00 정규장 마감 퀀트 브리핑]";
-  const sessionHeader = isPreMarket ? "오늘 밤 권장 포지션" : "익일 권장 포지션";
+  const sessionTitle = isPreMarket ? "🌙 프리마켓 점검" : "☀️ 정규장 마감";
+
+  // 신호등 판정
+  let wLight = '🟢';
+  if (disp60w < -2.5) wLight = '🔴';
+  else if (disp60w < 0 || disp120w < 0) wLight = '🟡';
+
+  let dLight = '🟢';
+  if (disp < -3.0) dLight = '🔴';
+  else if (disp < 0) dLight = '🟡';
+
+  let rsiLight = '🟢';
+  if (rsi <= 35 || rsi >= 70) rsiLight = '🔴';
+  else if (rsi < 45 || rsi > 65) rsiLight = '🟡';
+
+  let bbLight = '🟢';
+  if (bb <= 10 || bb >= 90) bbLight = '🔴';
+  else if (bb < 30 || bb > 70) bbLight = '🟡';
+
+  let stochLight = '🟢';
+  if (stoch <= 20 || stoch >= 80) stochLight = '🔴';
+  else if (stoch < 30 || stoch > 70) stochLight = '🟡';
+
+  let vixLight = '🟢';
+  if (vix >= 24) vixLight = '🔴';
+  else if (vix >= 18) vixLight = '🟡';
 
   const HASHTAGS = `
 .
@@ -226,27 +250,22 @@ function buildInstagramCaption(quantData, isPreMarket) {
 .
 #미국주식 #나스닥 #QQQ #QLD #TQQQ #GPIX #서학개미 #주식투자 #주식스타그램 #재테크 #경제적자유 #퀀트투자 #적립식투자 #투자전략 #월배당 #배당금 #스노우볼 #복리효과 #주린이 #해외주식 #주식공부 #포트폴리오 #자산배분 #투자스타그램`;
 
-  return `${sessionTitle}
-${regime.headline}
+  return `[QLD 퀀트 브리핑 | ${sessionTitle}]
 
-${regime.subIntro}
+■ 5대 지표 신호등 현황
+• 주봉 60·120주: ${wLight} ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}%
+• 일봉 200일선: ${dLight} ${dispSign}${disp.toFixed(1)}%
+• 일봉 RSI(14): ${rsiLight} ${rsi.toFixed(1)}
+• 볼린저밴드 %B: ${bbLight} ${bb.toFixed(1)}%
+• 스토캐스틱 %D: ${stochLight} ${stoch.toFixed(1)}
+• VIX 공포지수: ${vixLight} ${vix.toFixed(1)}
 
-📊 주봉·일봉 5대 퀀트 복합 지표 현황 (${regime.badge})
-• 주봉 60·120주 이격: ${w60Sign}${disp60w.toFixed(1)}% / ${w120Sign}${disp120w.toFixed(1)}% (${descs.dispDesc})
-• 일봉 200일선 이격: ${dispSign}${disp.toFixed(1)}%
-• 일봉 RSI 14: ${rsi.toFixed(1)} (${descs.rsiDesc})
-• 볼린저 %B: ${bb.toFixed(1)}% (${descs.bbDesc})
-• 스토캐스틱 %D: ${stoch.toFixed(1)} (${descs.stochDesc})
-• VIX 공포지수: ${vix.toFixed(1)} (${descs.vixDesc})
-👉 5대 복합 과열도: ${regime.heatIndex}점 (${descs.heatDesc})
+■ 현재 종합 점수: ${regime.heatIndex}점 / 100점 (${regime.badge})
+👉 오늘 적립식 매수한다면 ?
+${regime.ratioSummary}
 
-🎯 ${sessionHeader}
-${regime.posText}
-
-${regime.bottomText}
-
-💡 "감정을 지우고 주봉 60·120주선 및 5대 퀀트 데이터로만 기계적 대응합니다."
-매일 2회 (07:00 정규장 마감 / 19:00 프리마켓 매수 알림) 실시간 브리핑을 받아보세요.
+※ 본 글은 투자 권유를 하고 있지 않으며 관점만 공유드립니다.
+📸 인스타그램: @safety_qld_bot
 ${HASHTAGS}`;
 }
 
