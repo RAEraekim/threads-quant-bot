@@ -451,31 +451,95 @@ ${regime.ratioSummary}
 }
 
 // ============================================================================
-// 8. 메인 실행 함수 (통합 다채널 동시 발행 파이프라인)
+// 8. 한국 표준시(KST, UTC+9) 정밀 시각 계산 및 정각(07:00 / 22:00) 동기화 엔진
+// ============================================================================
+function getKSTNow() {
+  const kstMs = Date.now() + 9 * 3600 * 1000;
+  const d = new Date(kstMs);
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+    second: d.getUTCSeconds(),
+    formatted: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')} KST`
+  };
+}
+
+async function waitForExactBriefingWindow(isPreMarket, leadSeconds = 45) {
+  if (process.env.SCHEDULED_RUN !== 'true') return;
+  const targetHour = isPreMarket ? 22 : 7;
+  const kst = getKSTNow();
+
+  const currentSecOfDay = kst.hour * 3600 + kst.minute * 60 + kst.second;
+  const targetSecOfDay = targetHour * 3600 - leadSeconds;
+  const waitSec = targetSecOfDay - currentSecOfDay;
+
+  if (waitSec > 0 && waitSec <= 45 * 60) {
+    console.log(`⏰ [KST 정각 동기화] 현재 시각(${kst.formatted}) -> ${String(targetHour).padStart(2, '0')}:00:00 KST 정각 발행을 위해 데이터 수집 시각까지 ${waitSec}초 대기합니다...`);
+    await new Promise(r => setTimeout(r, waitSec * 1000));
+  }
+}
+
+async function waitUntilExactTargetHour(isPreMarket) {
+  if (process.env.SCHEDULED_RUN !== 'true') return;
+  const targetHour = isPreMarket ? 22 : 7;
+  const kst = getKSTNow();
+
+  const currentSecOfDay = kst.hour * 3600 + kst.minute * 60 + kst.second;
+  const targetSecOfDay = targetHour * 3600;
+  const waitSec = targetSecOfDay - currentSecOfDay;
+
+  if (waitSec > 0 && waitSec <= 180) {
+    console.log(`🎯 [KST 정각 카운트다운] ${String(targetHour).padStart(2, '0')}:00:00 KST 정각까지 ${waitSec}초 대기 후 정확히 정각에 발행을 시작합니다...`);
+    await new Promise(r => setTimeout(r, waitSec * 1000));
+  }
+}
+
+// ============================================================================
+// 9. 메인 실행 함수 (통합 다채널 동시 발행 파이프라인)
 // ============================================================================
 async function main() {
   const args = process.argv.slice(2);
+  const cronExpr = (process.env.SCHEDULE_CRON || '').trim();
   let isPreMarket = false;
 
   if (args.includes('pre')) {
     isPreMarket = true;
   } else if (args.includes('post')) {
     isPreMarket = false;
+  } else if (cronExpr.includes(' 12 ') || cronExpr.includes(' 13 ')) {
+    // UTC 12:35 / 13:00 스케줄 = 한국시간 오후 22:00 프리마켓 브리핑
+    isPreMarket = true;
+  } else if (cronExpr.includes(' 21 ') || cronExpr.includes(' 22 ')) {
+    // UTC 21:35 / 22:00 스케줄 = 한국시간 오전 07:00 정규장 마감 브리핑
+    isPreMarket = false;
   } else {
-    const nowKST = new Date(new Date().getTime() + 9 * 3600 * 1000);
-    const hour = nowKST.getHours();
-    isPreMarket = (hour >= 14 && hour <= 23);
+    // OS 타임존에 무관하게 항상 정확한 UTC+9 한국시간 기준으로 판별
+    const kst = getKSTNow();
+    isPreMarket = (kst.hour >= 14 && kst.hour <= 23);
   }
 
-  const sessionName = isPreMarket ? "🌙 [미장 개장 전 프리마켓 점검 & 매수 알림]" : "☀️ [미장 정규장 마감 브리핑 & 포지션]";
-  console.log(`=== [퀀트 봇 다채널 자동 발행 시작: ${sessionName}] ===`);
+  const sessionName = isPreMarket
+    ? "🌙 [한국시간 22:00 미장 개장 전 프리마켓 점검 & 매수 알림]"
+    : "☀️ [한국시간 07:00 미장 정규장 마감 브리핑 & 포지션]";
+  console.log(`=== [퀀트 봇 다채널 자동 발행 파이프라인 가동: ${sessionName}] ===`);
+  console.log(`🕒 프로세스 시작 시각: ${getKSTNow().formatted}`);
 
   try {
+    // GitHub Actions 조기 워밍업 실행 시 정각 45초 전(06:59:15 / 21:59:15 KST)까지 대기 후 최신 시세 수집
+    await waitForExactBriefingWindow(isPreMarket, 45);
+
     const { postText, quantData } = await generatePostContent(isPreMarket);
     console.log('\n--- [생성된 포스팅 내용] ---');
     console.log(postText);
     console.log(`글자 수: ${postText.length}자 (Threads 제한 500자)`);
     console.log('---------------------------\n');
+
+    // 정확히 한국시간 07:00:00 또는 22:00:00 정각에 맞춰 발행 개시
+    await waitUntilExactTargetHour(isPreMarket);
+    console.log(`🚀 [정각 발행 개시 시각]: ${getKSTNow().formatted}`);
 
     // 1. Threads 발행 (Investing & QLD 2대 커뮤니티)
     console.log('📱 1. Threads 포스팅 진행...');
@@ -527,5 +591,6 @@ module.exports = {
   calculateWilderRSI,
   calculateBollingerBandPctB,
   calculateStochasticSlow,
-  getIndicatorDescs
+  getIndicatorDescs,
+  getKSTNow
 };

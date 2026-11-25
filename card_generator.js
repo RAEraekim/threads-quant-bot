@@ -392,8 +392,8 @@ async function generateAllCards(data, outputDir = './cards') {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const nowKST = new Date(new Date().getTime() + 9 * 3600 * 1000);
-  const dateStr = `${nowKST.getFullYear()}.${String(nowKST.getMonth() + 1).padStart(2, '0')}.${String(nowKST.getDate()).padStart(2, '0')}`;
+  const nowKST = new Date(Date.now() + 9 * 3600 * 1000);
+  const dateStr = `${nowKST.getUTCFullYear()}.${String(nowKST.getUTCMonth() + 1).padStart(2, '0')}.${String(nowKST.getUTCDate()).padStart(2, '0')}`;
 
   const renderData = { ...data, dateStr };
 
